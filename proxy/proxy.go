@@ -69,12 +69,7 @@ func executeGoCommand(name string, arg ...string) ([]byte, error) {
 
 	cmd.Dir = os.Getenv("GOPATH")
 	cmd.Env = append(os.Environ(), "GO111MODULE=on")
-	stdout, err := cmd.Output()
-	if err != nil {
-		return nil, err
-	}
-
-	return stdout, nil
+	return cmd.Output()
 }
 
 // go mod download -json github.com/gliderlabs/logspout@v3.2.1+incompatible

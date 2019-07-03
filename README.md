@@ -1,2 +1,2 @@
 # proxy
-private go package porxy
+private go package proxy

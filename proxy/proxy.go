@@ -67,7 +67,7 @@ func executeGoCommand(name string, arg ...string) ([]byte, error) {
 
 	fmt.Println(name, strings.Join(arg, " "))
 
-	cmd.Dir = os.Getenv("GOPATH") + "/src"
+	cmd.Dir = os.Getenv("GOPATH")
 	cmd.Env = append(os.Environ(), "GO111MODULE=on")
 	stdout, err := cmd.Output()
 	if err != nil {

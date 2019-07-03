@@ -2,7 +2,6 @@ package main
 
 import (
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"strings"
@@ -37,32 +36,17 @@ func main() {
 		case strings.HasSuffix(version, ".info"):
 			version = strings.TrimSuffix(version, ".info")
 			handler = proxy.Handler(func(info *proxy.Info) (reader io.ReadCloser, e error) {
-				f, err := os.Open(info.Info)
-				if err != nil {
-					http.Error(writer, err.Error(), http.StatusBadRequest)
-					return
-				}
-				return ioutil.NopCloser(f), err
+				return open(info.Info)
 			})
 		case strings.HasSuffix(version, ".mod"):
 			version = strings.TrimSuffix(version, ".mod")
 			handler = proxy.Handler(func(info *proxy.Info) (reader io.ReadCloser, e error) {
-				f, err := os.Open(info.GoMod)
-				if err != nil {
-					http.Error(writer, err.Error(), http.StatusBadRequest)
-					return
-				}
-				return ioutil.NopCloser(f), err
+				return open(info.GoMod)
 			})
 		case strings.HasSuffix(version, ".zip"):
 			version = strings.TrimSuffix(version, ".zip")
 			handler = proxy.Handler(func(info *proxy.Info) (reader io.ReadCloser, e error) {
-				f, err := os.Open(info.Zip)
-				if err != nil {
-					http.Error(writer, err.Error(), http.StatusBadRequest)
-					return
-				}
-				return ioutil.NopCloser(f), err
+				return open(info.Zip)
 			})
 		case strings.EqualFold(version, "list"):
 			proxy.HandlerList(writer, modPath)
@@ -82,4 +66,12 @@ func main() {
 	})
 
 	http.ListenAndServe(":8081", http.DefaultServeMux)
+}
+
+func open(filename string) (reader io.ReadCloser, e error) {
+	f, err := os.Open(filename)
+	if err != nil {
+		return
+	}
+	return f, err
 }

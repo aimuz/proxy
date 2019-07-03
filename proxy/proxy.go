@@ -8,7 +8,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/aimuz/go-json"
+	json "github.com/aimuz/go-json"
 )
 
 type Info struct {
@@ -59,7 +59,7 @@ func HandlerList(writer http.ResponseWriter, modPath string) {
 	}
 
 	writer.WriteHeader(http.StatusOK)
-	writer.Write([]byte(strings.Join(list.Versions, "\n")))
+	fmt.Fprintln(writer, strings.Join(list.Versions, "\n"))
 }
 
 func executeGoCommand(name string, arg ...string) ([]byte, error) {

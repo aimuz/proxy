@@ -3,7 +3,7 @@ module github.com/aimuz/proxy
 go 1.12
 
 require (
-	github.com/aimuz/go-json v0.0.0-20190627031812-9cec2e77bc15
+	github.com/aimuz/go-json v0.0.0-20190703020015-27edfebf430c
 	github.com/labstack/echo v3.3.10+incompatible
 	github.com/labstack/gommon v0.2.8 // indirect
 	github.com/mattn/go-colorable v0.1.2 // indirect

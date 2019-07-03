@@ -1,13 +1,14 @@
 package proxy
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
 	"os/exec"
 	"strings"
+
+	"github.com/aimuz/go-json"
 )
 
 type Info struct {
@@ -21,70 +22,27 @@ type Info struct {
 	GoModSum string `json:"GoModSum"`
 }
 
-func HandlerInfo(writer http.ResponseWriter, modPath, version string) {
-	info, err := executeGoCommandInfo(modPath, version)
-	if err != nil {
-		http.Error(writer, err.Error(), http.StatusBadRequest)
-		return
-	}
+func Handler(fn func(info *Info) (io.ReadCloser, error)) func(writer http.ResponseWriter, modPath, version string) {
+	return func(writer http.ResponseWriter, modPath, version string) {
+		info, err := executeGoCommandInfo(modPath, version)
+		if err != nil {
+			http.Error(writer, err.Error(), http.StatusInternalServerError)
+			return
+		}
 
-	f, err := os.Open(info.Info)
-	if err != nil {
-		http.Error(writer, err.Error(), http.StatusBadRequest)
-		return
-	}
-	defer f.Close()
+		r, err := fn(info)
+		if err != nil {
+			http.Error(writer, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		defer r.Close()
 
-	_, err = io.Copy(writer, f)
-	if err != nil {
-		http.Error(writer, err.Error(), http.StatusBadRequest)
-		return
+		_, err = io.Copy(writer, r)
+		if err != nil {
+			http.Error(writer, err.Error(), http.StatusBadRequest)
+			return
+		}
 	}
-	return
-}
-
-func HandlerZip(writer http.ResponseWriter, modPath, version string) {
-	info, err := executeGoCommandInfo(modPath, version)
-	if err != nil {
-		http.Error(writer, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	f, err := os.Open(info.Zip)
-	if err != nil {
-		http.Error(writer, err.Error(), http.StatusBadRequest)
-		return
-	}
-	defer f.Close()
-
-	_, err = io.Copy(writer, f)
-	if err != nil {
-		http.Error(writer, err.Error(), http.StatusBadRequest)
-		return
-	}
-	return
-}
-
-func HandlerMod(writer http.ResponseWriter, modPath, version string) {
-	info, err := executeGoCommandInfo(modPath, version)
-	if err != nil {
-		http.Error(writer, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	f, err := os.Open(info.GoMod)
-	if err != nil {
-		http.Error(writer, err.Error(), http.StatusBadRequest)
-		return
-	}
-	defer f.Close()
-
-	_, err = io.Copy(writer, f)
-	if err != nil {
-		http.Error(writer, err.Error(), http.StatusBadRequest)
-		return
-	}
-	return
 }
 
 type List struct {

@@ -38,6 +38,7 @@ func Handler(fn func(info *Info) (io.ReadCloser, error)) func(writer http.Respon
 		}
 		defer r.Close()
 
+		writer.WriteHeader(http.StatusOK)
 		_, err = io.Copy(writer, r)
 		if err != nil {
 			http.Error(writer, err.Error(), http.StatusBadRequest)
@@ -85,8 +86,10 @@ func executeGoCommandInfo(modPath string, version string) (*Info, error) {
 	key := modPath + "@" + version
 
 	v, ok := caches[key]
-	if version != "latest" && ok {
-		return v.Info, nil
+	if ok {
+		if version != "latest" || time.Now().Sub(v.ExecAt).Seconds() < 30 {
+			return v.Info, nil
+		}
 	}
 
 	b, err := executeGoCommand("go", "mod", "download", "-json", key)

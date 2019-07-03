@@ -49,7 +49,7 @@ func main() {
 				return open(info.Zip)
 			})
 		case strings.EqualFold(version, "list"):
-			proxy.HandlerList(writer, modPath)
+			proxy.HandlerList(writer, _path)
 			return
 		default:
 			http.NotFound(writer, request)

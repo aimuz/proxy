@@ -21,7 +21,7 @@ ENV GIT_COMMIT=${gitCommit}
 COPY --from=builder /app/ /app/
 
 RUN apk update && \
-    apk add -U git wget
+    apk add -U git
 
 WORKDIR /app/
 CMD ["./goproxy"]

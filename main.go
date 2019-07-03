@@ -22,10 +22,8 @@ func main() {
 			return
 		}
 
-		modPath := _paths[0][1:]
 		version := _paths[1]
-
-		_path, err := module.UnescapePath(modPath)
+		_path, err := module.UnescapePath(_paths[0][1:])
 		if err != nil {
 			http.Error(writer, err.Error(), http.StatusBadRequest)
 			return

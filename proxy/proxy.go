@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"time"
 
 	json "github.com/aimuz/go-json"
 )
@@ -72,15 +73,39 @@ func executeGoCommand(name string, arg ...string) ([]byte, error) {
 	return cmd.Output()
 }
 
+type Cache struct {
+	ExecAt time.Time
+	Info   *Info
+}
+
+var caches = make(map[string]*Cache)
+
 // go mod download -json github.com/gliderlabs/logspout@v3.2.1+incompatible
 func executeGoCommandInfo(modPath string, version string) (*Info, error) {
-	b, err := executeGoCommand("go", "mod", "download", "-json", modPath+"@"+version)
+	key := modPath + "@" + version
+
+	v, ok := caches[key]
+	if version != "latest" && ok {
+		return v.Info, nil
+	}
+
+	b, err := executeGoCommand("go", "mod", "download", "-json", key)
 	if err != nil {
 		return nil, err
 	}
 
 	info := new(Info)
-	return info, json.Unmarshal(b, info)
+	err = json.Unmarshal(b, info)
+	if err != nil {
+		return nil, err
+	}
+
+	caches[key] = &Cache{
+		Info:   info,
+		ExecAt: time.Now(),
+	}
+
+	return info, nil
 }
 
 // go list -json -m -versions github.com/gliderlabs/logspout

@@ -3,7 +3,6 @@ package proxy
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"os/exec"
@@ -41,18 +40,11 @@ func Handler(fn func(info *Info) (io.ReadCloser, error)) func(writer http.Respon
 
 		writer.WriteHeader(http.StatusOK)
 
-		//_, err = io.Copy(writer, r)
-		//if err != nil {
-		//	http.Error(writer, err.Error(), http.StatusBadRequest)
-		//	return
-		//}
-
-		b, err := ioutil.ReadAll(r)
+		_, err = io.Copy(writer, r)
 		if err != nil {
 			http.Error(writer, err.Error(), http.StatusBadRequest)
 			return
 		}
-		writer.Write(b)
 	}
 }
 
@@ -83,25 +75,14 @@ func executeGoCommand(name string, arg ...string) ([]byte, error) {
 	return cmd.Output()
 }
 
-type Cache struct {
-	ExecAt time.Time
-	Info   *Info
-}
-
-var caches = make(map[string]*Cache)
-
 // go mod download -json github.com/gliderlabs/logspout@v3.2.1+incompatible
 func executeGoCommandInfo(modPath string, version string) (*Info, error) {
-	key := modPath + "@" + version
-
-	v, ok := caches[key]
+	cache, ok := getCache(modPath, version)
 	if ok {
-		if (version != "latest") ||
-			(version != "latest" && time.Now().Sub(v.ExecAt).Seconds() < 30) {
-			return v.Info, nil
-		}
+		return cache.Info, nil
 	}
 
+	key := modPath + "@" + version
 	b, err := executeGoCommand("go", "mod", "download", "-json", key)
 	if err != nil {
 		return nil, err
@@ -113,21 +94,34 @@ func executeGoCommandInfo(modPath string, version string) (*Info, error) {
 		return nil, err
 	}
 
-	caches[key] = &Cache{
-		Info:   info,
+	setCache(key, &Cache{
 		ExecAt: time.Now(),
-	}
-
+		Info:   info,
+	})
 	return info, nil
 }
 
 // go list -json -m -versions github.com/gliderlabs/logspout
 func executeGoCommandList(modPath string) (*List, error) {
+	cache, ok := getCache(modPath, "list")
+	if ok {
+		return cache.List, nil
+	}
 	b, err := executeGoCommand("go", "list", "-json", "-m", "-versions", modPath)
 	if err != nil {
 		return nil, err
 	}
 
 	list := new(List)
-	return list, json.Unmarshal(b, list)
+	err = json.Unmarshal(b, list)
+	if err != nil {
+		return nil, err
+	}
+
+	setCache(modPath+"@list", &Cache{
+		ExecAt: time.Now(),
+		List:   list,
+	})
+
+	return list, nil
 }

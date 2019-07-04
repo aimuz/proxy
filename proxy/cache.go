@@ -20,8 +20,9 @@ func getCache(_path string, version string) (*Cache, bool) {
 
 	v, ok := caches[_path+"@"+version]
 	if ok {
-		if (version != "latest") ||
-			(version == "latest" && time.Now().Sub(v.ExecAt).Seconds() < 30) {
+		if (version != "latest" && version != "list") ||
+			(version == "latest" && time.Now().Sub(v.ExecAt).Minutes() < 30) ||
+			(version == "list" && time.Now().Sub(v.ExecAt).Minutes() < 30) {
 			return v, ok
 		}
 	}

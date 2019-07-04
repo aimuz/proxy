@@ -52,7 +52,7 @@ func Handler(fn func(info *Info) (io.ReadCloser, error)) func(writer http.Respon
 			http.Error(writer, err.Error(), http.StatusBadRequest)
 			return
 		}
-		fmt.Fprintln(writer, b)
+		writer.Write(b)
 	}
 }
 

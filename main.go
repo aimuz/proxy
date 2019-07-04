@@ -15,7 +15,6 @@ type Handler func(writer http.ResponseWriter, mod, version string)
 func main() {
 
 	http.HandleFunc("/", func(writer http.ResponseWriter, request *http.Request) {
-
 		_paths := strings.Split(request.URL.Path, "/@v/")
 		if len(_paths) != 2 {
 			http.NotFound(writer, request)

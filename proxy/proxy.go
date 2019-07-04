@@ -3,13 +3,14 @@ package proxy
 import (
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"os/exec"
 	"strings"
 	"time"
 
-	json "github.com/aimuz/go-json"
+	"github.com/aimuz/go-json"
 )
 
 type Info struct {
@@ -39,11 +40,19 @@ func Handler(fn func(info *Info) (io.ReadCloser, error)) func(writer http.Respon
 		defer r.Close()
 
 		writer.WriteHeader(http.StatusOK)
-		_, err = io.Copy(writer, r)
+
+		//_, err = io.Copy(writer, r)
+		//if err != nil {
+		//	http.Error(writer, err.Error(), http.StatusBadRequest)
+		//	return
+		//}
+
+		b, err := ioutil.ReadAll(r)
 		if err != nil {
 			http.Error(writer, err.Error(), http.StatusBadRequest)
 			return
 		}
+		fmt.Fprintln(writer, b)
 	}
 }
 
@@ -87,7 +96,8 @@ func executeGoCommandInfo(modPath string, version string) (*Info, error) {
 
 	v, ok := caches[key]
 	if ok {
-		if version != "latest" || time.Now().Sub(v.ExecAt).Seconds() < 30 {
+		if (version != "latest") ||
+			(version != "latest" && time.Now().Sub(v.ExecAt).Seconds() < 30) {
 			return v.Info, nil
 		}
 	}

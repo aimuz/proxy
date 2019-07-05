@@ -39,17 +39,17 @@ func main() {
 		case strings.HasSuffix(version, ".info"):
 			version = strings.TrimSuffix(version, ".info")
 			handler = proxy.Handler(func(info *proxy.Info) (reader io.ReadCloser, e error) {
-				return open(info.Info)
+				return os.Open(info.Info)
 			})
 		case strings.HasSuffix(version, ".mod"):
 			version = strings.TrimSuffix(version, ".mod")
 			handler = proxy.Handler(func(info *proxy.Info) (reader io.ReadCloser, e error) {
-				return open(info.GoMod)
+				return os.Open(info.GoMod)
 			})
 		case strings.HasSuffix(version, ".zip"):
 			version = strings.TrimSuffix(version, ".zip")
 			handler = proxy.Handler(func(info *proxy.Info) (reader io.ReadCloser, e error) {
-				return open(info.Zip)
+				return os.Open(info.Zip)
 			})
 		case strings.EqualFold(version, "list"):
 			proxy.HandlerList(writer, _path)
@@ -83,14 +83,6 @@ func main() {
 			os.Exit(1)
 		}
 	})
-}
-
-func open(filename string) (reader io.ReadCloser, e error) {
-	f, err := os.Open(filename)
-	if err != nil {
-		return
-	}
-	return f, err
 }
 
 func initSignal(cancel func(signal os.Signal)) {

@@ -1,16 +1,22 @@
 package main
 
 import (
+	"context"
 	"io"
+	"log"
 	"net/http"
 	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 
 	"github.com/aimuz/proxy/proxy"
 	"golang.org/x/mod/module"
 )
 
 type Handler func(writer http.ResponseWriter, mod, version string)
+
+var addr = ":8081"
 
 func main() {
 
@@ -62,7 +68,21 @@ func main() {
 		handler(writer, _path, _version)
 	})
 
-	http.ListenAndServe(":8081", http.DefaultServeMux)
+	server := &http.Server{Addr: addr, Handler: http.DefaultServeMux}
+	go func() {
+		log.Println("Listen", addr)
+		if err := server.ListenAndServe(); err != nil {
+			log.Println(err)
+		}
+	}()
+
+	initSignal(func(signal os.Signal) {
+		log.Println("signal:", signal)
+		if err := server.Shutdown(context.Background()); err != nil {
+			log.Println("signal:", signal)
+			os.Exit(1)
+		}
+	})
 }
 
 func open(filename string) (reader io.ReadCloser, e error) {
@@ -71,4 +91,16 @@ func open(filename string) (reader io.ReadCloser, e error) {
 		return
 	}
 	return f, err
+}
+
+func initSignal(cancel func(signal os.Signal)) {
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit,
+		syscall.SIGINT,
+		syscall.SIGTERM,
+		syscall.SIGQUIT,
+		syscall.SIGHUP,
+	)
+	c := <-quit
+	cancel(c)
 }

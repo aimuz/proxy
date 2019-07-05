@@ -3,11 +3,11 @@ package proxy
 import (
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"os/exec"
 	"strings"
-	"time"
 
 	"github.com/aimuz/go-json"
 )
@@ -27,12 +27,14 @@ func Handler(fn func(info *Info) (io.ReadCloser, error)) func(writer http.Respon
 	return func(writer http.ResponseWriter, modPath, version string) {
 		info, err := executeGoCommandInfo(modPath, version)
 		if err != nil {
+			log.Println(err)
 			http.Error(writer, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
 		r, err := fn(info)
 		if err != nil {
+			log.Println(err)
 			http.Error(writer, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -42,6 +44,7 @@ func Handler(fn func(info *Info) (io.ReadCloser, error)) func(writer http.Respon
 
 		_, err = io.Copy(writer, r)
 		if err != nil {
+			log.Println(err)
 			http.Error(writer, err.Error(), http.StatusBadRequest)
 			return
 		}
@@ -57,6 +60,7 @@ type List struct {
 func HandlerList(writer http.ResponseWriter, modPath string) {
 	list, err := executeGoCommandList(modPath)
 	if err != nil {
+		log.Println(err)
 		http.Error(writer, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -68,7 +72,7 @@ func HandlerList(writer http.ResponseWriter, modPath string) {
 func executeGoCommand(name string, arg ...string) ([]byte, error) {
 	cmd := exec.Command(name, arg...)
 
-	fmt.Println(name, strings.Join(arg, " "))
+	log.Println(name, strings.Join(arg, " "))
 
 	cmd.Dir = os.Getenv("GOPATH")
 	cmd.Env = append(os.Environ(), "GO111MODULE=on")
@@ -77,51 +81,22 @@ func executeGoCommand(name string, arg ...string) ([]byte, error) {
 
 // go mod download -json github.com/gliderlabs/logspout@v3.2.1+incompatible
 func executeGoCommandInfo(modPath string, version string) (*Info, error) {
-	cache, ok := getCache(modPath, version)
-	if ok {
-		return cache.Info, nil
-	}
-
-	key := modPath + "@" + version
-	b, err := executeGoCommand("go", "mod", "download", "-json", key)
+	b, err := executeGoCommand("go", "mod", "download", "-json", modPath+"@"+version)
 	if err != nil {
 		return nil, err
 	}
 
 	info := new(Info)
-	err = json.Unmarshal(b, info)
-	if err != nil {
-		return nil, err
-	}
-
-	setCache(key, &Cache{
-		ExecAt: time.Now(),
-		Info:   info,
-	})
-	return info, nil
+	return info, json.Unmarshal(b, info)
 }
 
 // go list -json -m -versions github.com/gliderlabs/logspout
 func executeGoCommandList(modPath string) (*List, error) {
-	cache, ok := getCache(modPath, "list")
-	if ok {
-		return cache.List, nil
-	}
 	b, err := executeGoCommand("go", "list", "-json", "-m", "-versions", modPath)
 	if err != nil {
 		return nil, err
 	}
 
 	list := new(List)
-	err = json.Unmarshal(b, list)
-	if err != nil {
-		return nil, err
-	}
-
-	setCache(modPath+"@list", &Cache{
-		ExecAt: time.Now(),
-		List:   list,
-	})
-
-	return list, nil
+	return list, json.Unmarshal(b, list)
 }

@@ -23,5 +23,8 @@ COPY --from=builder /app/ /app/
 RUN apk update && \
     apk add -U git
 
+EXPOSE 8081/tcp
+EXPOSE 8081/udp
+
 WORKDIR /app/
 CMD ["./goproxy"]

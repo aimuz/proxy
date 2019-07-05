@@ -79,7 +79,7 @@ func main() {
 	initSignal(func(signal os.Signal) {
 		log.Println("signal:", signal)
 		if err := server.Shutdown(context.Background()); err != nil {
-			log.Println("signal:", signal)
+			log.Println(err)
 			os.Exit(1)
 		}
 	})

@@ -39,9 +39,6 @@ func Handler(fn func(info *Info) (io.ReadCloser, error)) func(writer http.Respon
 			return
 		}
 		defer r.Close()
-
-		writer.WriteHeader(http.StatusOK)
-
 		_, err = io.Copy(writer, r)
 		if err != nil {
 			log.Println(err)

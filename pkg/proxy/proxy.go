@@ -63,14 +63,12 @@ func HandlerList(writer http.ResponseWriter, modPath string) {
 	}
 
 	writer.WriteHeader(http.StatusOK)
-	fmt.Fprintln(writer, strings.Join(list.Versions, "\n"))
+	_, _ = fmt.Fprintln(writer, strings.Join(list.Versions, "\n"))
 }
 
-func executeGoCommand(name string, arg ...string) ([]byte, error) {
-	cmd := exec.Command(name, arg...)
-
-	log.Println(name, strings.Join(arg, " "))
-
+func executeGoCommand(arg ...string) ([]byte, error) {
+	log.Println("go", strings.Join(arg, " "))
+	cmd := exec.Command("go", arg...)
 	cmd.Dir = os.Getenv("GOPATH")
 	cmd.Env = append(os.Environ(), "GO111MODULE=on")
 	return cmd.Output()
@@ -78,7 +76,7 @@ func executeGoCommand(name string, arg ...string) ([]byte, error) {
 
 // go mod download -json github.com/gliderlabs/logspout@v3.2.1+incompatible
 func executeGoCommandInfo(modPath string, version string) (*Info, error) {
-	b, err := executeGoCommand("go", "mod", "download", "-json", modPath+"@"+version)
+	b, err := executeGoCommand("mod", "download", "-json", modPath+"@"+version)
 	if err != nil {
 		return nil, err
 	}
@@ -89,7 +87,7 @@ func executeGoCommandInfo(modPath string, version string) (*Info, error) {
 
 // go list -json -m -versions github.com/gliderlabs/logspout
 func executeGoCommandList(modPath string) (*List, error) {
-	b, err := executeGoCommand("go", "list", "-json", "-m", "-versions", modPath)
+	b, err := executeGoCommand("list", "-json", "-m", "-versions", modPath)
 	if err != nil {
 		return nil, err
 	}

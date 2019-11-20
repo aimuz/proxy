@@ -2,46 +2,40 @@ package main
 
 import (
 	"context"
-	"log"
-	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 
-	"github.com/aimuz/proxy/proxy"
+	"github.com/aimuz/proxy/pkg/server"
+	"github.com/aimuz/proxy/pkg/server/cmd"
+	"github.com/spf13/cobra"
 )
 
-type Handler func(writer http.ResponseWriter, mod, version string)
-
-var addr = ":8081"
-
 func main() {
-	http.Handle("/", proxy.NewProxy())
-	server := &http.Server{Addr: addr, Handler: http.DefaultServeMux}
-	go func() {
-		log.Println("Listen", addr)
-		if err := server.ListenAndServe(); err != nil {
-			log.Println(err)
-		}
-	}()
-
-	initSignal(func(signal os.Signal) {
-		log.Println("signal:", signal)
-		if err := server.Shutdown(context.Background()); err != nil {
-			log.Println(err)
-			os.Exit(1)
-		}
-	})
+	serverCmd := cmd.NewServerDefaultCommand()
+	serverCmd.Run = run
+	err := serverCmd.Execute()
+	if err != nil {
+		panic(err)
+	}
 }
 
-func initSignal(cancel func(signal os.Signal)) {
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit,
-		syscall.SIGINT,
-		syscall.SIGTERM,
-		syscall.SIGQUIT,
-		syscall.SIGHUP,
-	)
-	c := <-quit
-	cancel(c)
+func run(cmd *cobra.Command, args []string) {
+	rootCtx := SetupSignalHandler(context.Background())
+	ctx := context.WithValue(rootCtx, "cmd", cmd)
+	server.Start(ctx)
+}
+
+func SetupSignalHandler(parent context.Context) context.Context {
+	ctx, cancel := context.WithCancel(parent)
+	c := make(chan os.Signal, 2)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-c
+		cancel()
+		<-c
+		os.Exit(1) // second signal. Exit directly.
+	}()
+
+	return ctx
 }

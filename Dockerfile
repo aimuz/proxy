@@ -1,4 +1,4 @@
-FROM golang:1.12-alpine as builder
+FROM golang:1.13-alpine as builder
 ARG version
 ARG gitCommit
 
@@ -14,7 +14,7 @@ RUN apk update && \
     chmod u+x /app/goproxy
 
 
-FROM golang:1.12-alpine
+FROM golang:1.13-alpine
 
 ARG gitCommit
 ENV GIT_COMMIT=${gitCommit}
